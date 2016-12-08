@@ -119,7 +119,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Otherwise, check to see if the player touches the rocks or ground and if so, end the game.
         if contact.bodyA.node == player || contact.bodyB.node == player {
-            if let explosion = SKEmitterNode(fileNamed: "explosion") {
+            if let explosion = SKEmitterNode(fileNamed: "PlayerExplosion") {
                 explosion.position = player.position
                 addChild(explosion)
             }
@@ -278,10 +278,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let max = Int(frame.height / 3)
         // Generate a random number to determine where the safe spot between the rocks will be.
         let rand = GKRandomDistribution(lowestValue: -100, highestValue: max)
-        
         let yPosition = CGFloat(rand.nextInt())
         
-        let rockDistance: CGFloat = 110
+        let rockDistance: CGFloat = 70
         
         // Position the rocks at the right edge of the screen and animate them to the left edge.
         topRock.position = CGPoint(x: xPosition, y: yPosition + topRock.size.height + rockDistance)
@@ -325,10 +324,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scoreLabel.position = CGPoint(x: frame.maxX - 20, y: frame.maxY - 40)
         scoreLabel.horizontalAlignmentMode = .right
         scoreLabel.text = "SCORE: 0"
-        scoreLabel.color = UIColor.black
+        scoreLabel.fontColor = UIColor.black
         
         addChild(scoreLabel)
     }
+    
+    /// createLogos() creates centralized logos for the intro and game-over page
+    /// - Returns: nil
+    /// - Parameters: none
     
     func createLogos() {
         logo = SKSpriteNode(imageNamed: "logo")
