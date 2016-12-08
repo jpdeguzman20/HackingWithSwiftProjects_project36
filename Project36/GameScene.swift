@@ -9,11 +9,25 @@
 import SpriteKit
 import GameplayKit
 
-class GameScene: SKScene {
+enum GameState {
+    case showingLogo
+    case playing
+    case dead
+}
+
+class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var player: SKSpriteNode!
     
+    var logo: SKSpriteNode!
+    
+    var gameOver: SKSpriteNode!
+    
+    var backgroundMusic: SKAudioNode!
+    
     var scoreLabel: SKLabelNode!
+    
+    var gameState = GameState.showingLogo
     
     // Property observer to update the score whenever it changes
     var score = 0 {
@@ -23,16 +37,104 @@ class GameScene: SKScene {
     }
     
     override func didMove(to view: SKView) {
+        createLogos()
         createPlayer()
         createSky()
         createBackground()
         createGround()
-        startRocks()
         createScore()
+        
+        // Creates the gravity for the player
+        physicsWorld.gravity = CGVector(dx: 0.0, dy: -5.0)
+        physicsWorld.contactDelegate = self
+        
+        // Create a SKAudioNode object from the music file and add it to the app
+        if let musicURL = Bundle.main.url(forResource: "music", withExtension: "m4a") {
+            backgroundMusic = SKAudioNode(url: musicURL)
+            addChild(backgroundMusic)
+        }
+        
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-
+        switch gameState {
+        case .showingLogo:
+            gameState = .playing
+            
+            let fadeOut = SKAction.fadeOut(withDuration: 0.5)
+            let remove = SKAction.removeFromParent()
+            let wait = SKAction.wait(forDuration: 0.5)
+            let activatePlayer = SKAction.run { [unowned self] in
+                self.player.physicsBody?.isDynamic = true
+                self.startRocks()
+            }
+            
+            let sequence = SKAction.sequence([fadeOut, wait, activatePlayer, remove])
+            logo.run(sequence)
+        case .playing:
+            player.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+            // Every time the player taps the screen, push the player upwards.
+            player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 20))
+        case .dead:
+            // Create a fresh GameScene scene and make it transition in with an animation
+            let scene = GameScene(fileNamed: "GameScene")!
+            let transition = SKTransition.moveIn(with: SKTransitionDirection.right, duration: 1)
+            self.view?.presentScene(scene, transition: transition)
+        }
+    }
+    
+    override func update(_ currentTime: TimeInterval) {
+        // Make sure that player is not nil, otherwise exit the method
+        guard player != nil else { return }
+        
+        // Take 1/1000 of the player's upward velocity and turn that into rotation spanning 1/10 of a second.
+        let value = player.physicsBody!.velocity.dy * 0.001
+        let rotate = SKAction.rotate(toAngle: value, duration: 0.1)
+        
+        player.run(rotate)
+    }
+    
+    /// didBegin(_: SKPhysicsContact) handles the possible collisions between the player and surroundings.
+    /// - Returns: nil
+    /// - Parameters: 
+    ///   - contact: the object that has collided with another object
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        // Check to see if either the plane collided with the rectangle score box or the score box collided with the plane.
+        if contact.bodyA.node?.name == "scoreDetect" || contact.bodyB.node?.name == "scoreDetect" {
+            // Remove the score rectangle from the game so that they can't score double points
+            if contact.bodyA.node == player {
+                contact.bodyB.node?.removeFromParent()
+            } else {
+                contact.bodyA.node?.removeFromParent()
+            }
+        
+            let sound = SKAction.playSoundFileNamed("coin.wav", waitForCompletion: false)
+            run(sound)
+        
+            score += 1
+        
+            return
+        }
+        
+        // Otherwise, check to see if the player touches the rocks or ground and if so, end the game.
+        if contact.bodyA.node == player || contact.bodyB.node == player {
+            if let explosion = SKEmitterNode(fileNamed: "explosion") {
+                explosion.position = player.position
+                addChild(explosion)
+            }
+            
+            let sound = SKAction.playSoundFileNamed("explosion.wav", waitForCompletion: false)
+            run(sound)
+            
+            // End the game by showing the game over logo and changing the game state to dead
+            gameOver.alpha = 1
+            gameState = .dead
+            backgroundMusic.run(SKAction.stop())
+            
+            player.removeFromParent()
+            speed = 0
+        }
     }
     
     /// createPlayer() creates the player (a.k.a. the plane) animation
@@ -47,6 +149,12 @@ class GameScene: SKScene {
         player.position = CGPoint(x: frame.width / 10, y: frame.height * 0.75)
         
         addChild(player)
+        
+        // Adds physics to the player and tells us when it has collided with something.
+        player.physicsBody = SKPhysicsBody(texture: playerTexture, size: playerTexture.size())
+        player.physicsBody!.contactTestBitMask = player.physicsBody!.collisionBitMask
+        player.physicsBody!.isDynamic = false
+        player.physicsBody!.collisionBitMask = 0
         
         let frame2 = SKTexture(imageNamed: "player-2")
         let frame3 = SKTexture(imageNamed: "player-3")
@@ -119,6 +227,10 @@ class GameScene: SKScene {
             ground.zPosition = -10
             ground.position = CGPoint(x: (groundTexture.size().width / 2.0 + (groundTexture.size().width * CGFloat(i))), y: groundTexture.size().height / 2.0)
             
+            // Sets up the pixel-perfect collision for the ground sprites and then makes them non-dynamic.
+            ground.physicsBody = SKPhysicsBody(texture: ground.texture!, size: ground.texture!.size())
+            ground.physicsBody!.isDynamic = false
+            
             addChild(ground)
             
             let moveLeft = SKAction.moveBy(x: -groundTexture.size().width, y: 0, duration: 5)
@@ -139,16 +251,22 @@ class GameScene: SKScene {
         let rockTexture = SKTexture(imageNamed: "rock")
         
         let topRock = SKSpriteNode(texture: rockTexture)
+        topRock.physicsBody = SKPhysicsBody(texture: rockTexture, size: rockTexture.size())
+        topRock.physicsBody!.isDynamic = false
         topRock.zRotation = CGFloat.pi
         topRock.xScale = -1.0
         
         let bottomRock = SKSpriteNode(texture: rockTexture)
+        bottomRock.physicsBody = SKPhysicsBody(texture: rockTexture, size: rockTexture.size())
+        bottomRock.physicsBody!.isDynamic = false
         
         topRock.zPosition = -20
         bottomRock.zPosition = -20
         
         // Create a rectangular box such that if the player touches the box, they score a point.
-        let rockCollision = SKSpriteNode(color: UIColor.red, size: CGSize(width: 32, height: frame.height))
+        let rockCollision = SKSpriteNode(color: UIColor.clear, size: CGSize(width: 32, height: frame.height))
+        rockCollision.physicsBody = SKPhysicsBody(rectangleOf: rockCollision.size)
+        rockCollision.physicsBody!.isDynamic = false
         rockCollision.name = "scoreDetect"
         
         addChild(topRock)
@@ -163,7 +281,7 @@ class GameScene: SKScene {
         
         let yPosition = CGFloat(rand.nextInt())
         
-        let rockDistance: CGFloat = 70
+        let rockDistance: CGFloat = 110
         
         // Position the rocks at the right edge of the screen and animate them to the left edge.
         topRock.position = CGPoint(x: xPosition, y: yPosition + topRock.size.height + rockDistance)
@@ -210,5 +328,16 @@ class GameScene: SKScene {
         scoreLabel.color = UIColor.black
         
         addChild(scoreLabel)
+    }
+    
+    func createLogos() {
+        logo = SKSpriteNode(imageNamed: "logo")
+        logo.position = CGPoint(x: frame.midX, y: frame.midY)
+        addChild(logo)
+        
+        gameOver = SKSpriteNode(imageNamed: "gameover")
+        gameOver.position = CGPoint(x: frame.midX, y: frame.midY)
+        gameOver.alpha = 0
+        addChild(gameOver)
     }
 }
