@@ -82,7 +82,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let sequence = SKAction.sequence([fadeOut, wait, activatePlayer, remove])
             logo.run(sequence)
         case .playing:
-            player.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+            player.physicsBody?.velocity = CGVector(dx: 0, dy: -20)
             // Every time the player taps the screen, push the player upwards.
             player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 20))
         case .dead:
@@ -317,7 +317,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         let max = Int(frame.height / 3)
         
-        let rockDistance: CGFloat = 70
+        let rockDistance: CGFloat = 60
         
         // Generate a random number to determine where the safe spot between the rocks will be.
         let rand = GKRandomDistribution(lowestValue: -100, highestValue: max)
