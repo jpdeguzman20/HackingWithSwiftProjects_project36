@@ -27,12 +27,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var scoreLabel: SKLabelNode!
     
+    var bonusLabel: SKLabelNode!
+    
     var gameState = GameState.showingLogo
     
-    // Property observer to update the score whenever it changes
+    // Property observer to update the score whenever it changes.
     var score = 0 {
         didSet {
             scoreLabel.text = "Score: \(score)"
+        }
+    }
+    
+    // Property observer to update bonus whenever a star is collected.
+    var bonus = 0 {
+        didSet {
+            bonusLabel.text = "Bonus: \(bonus)"
         }
     }
     
@@ -43,6 +52,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         createBackground()
         createGround()
         createScore()
+        createBonus()
         
         // Creates the gravity for the player
         physicsWorld.gravity = CGVector(dx: 0.0, dy: -5.0)
@@ -114,6 +124,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
             score += 1
         
+            return
+        }
+        
+        if contact.bodyA.node?.name == "starDetect" || contact.bodyB.node?.name == "starDetect" {
+            if contact.bodyA.node == player {
+                contact.bodyB.node?.removeFromParent()
+            } else {
+                contact.bodyA.node?.removeFromParent()
+            }
+            
+            let sound = SKAction.playSoundFileNamed("coin.wav", waitForCompletion: false)
+            run(sound)
+            
+            bonus += 1
+            
             return
         }
         
@@ -273,23 +298,39 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         rockCollision.physicsBody!.isDynamic = false
         rockCollision.name = "scoreDetect"
         
+        let starTexture = SKTexture(imageNamed: "star")
+        
+        // Create star for bonus scoring.
+        let star = SKSpriteNode(texture: starTexture)
+        star.physicsBody = SKPhysicsBody(texture: starTexture, size: starTexture.size())
+        star.physicsBody!.isDynamic = false
+        star.zPosition = -10
+        star.size = CGSize(width: 30, height: 30)
+        star.name = "starDetect"
+        
         addChild(topRock)
         addChild(bottomRock)
         addChild(rockCollision)
+        addChild(star)
         
         let xPosition = frame.width + topRock.frame.width
         
         let max = Int(frame.height / 3)
+        
+        let rockDistance: CGFloat = 70
+        
         // Generate a random number to determine where the safe spot between the rocks will be.
         let rand = GKRandomDistribution(lowestValue: -100, highestValue: max)
         let yPosition = CGFloat(rand.nextInt())
         
-        let rockDistance: CGFloat = 70
+        let randStar = GKRandomDistribution(lowestValue: Int(frame.minY + 80), highestValue: Int(frame.maxY - 80))
+        let yPositionStar = CGFloat(randStar.nextInt())
         
         // Position the rocks at the right edge of the screen and animate them to the left edge.
         topRock.position = CGPoint(x: xPosition, y: yPosition + topRock.size.height + rockDistance)
         bottomRock.position = CGPoint(x: xPosition, y: yPosition - rockDistance)
         rockCollision.position = CGPoint(x: xPosition + (rockCollision.size.width * 2), y: frame.midY)
+        star.position = CGPoint(x: xPosition + frame.midX, y: yPositionStar)
         
         let endPosition = frame.width + (topRock.frame.width * 2)
         
@@ -299,6 +340,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         topRock.run(moveSequence)
         bottomRock.run(moveSequence)
         rockCollision.run(moveSequence)
+        star.run(moveSequence)
     }
     
     /// startRocks() uses createRocks() to create rocks, wait three seconds, and create rocks again and agian
@@ -331,6 +373,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scoreLabel.fontColor = UIColor.black
         
         addChild(scoreLabel)
+    }
+    
+    /// createBonus() sets up the player's current bonus score under the score label
+    /// - Returns: nil
+    /// - Parameters: none
+    
+    func createBonus() {
+        bonusLabel = SKLabelNode(fontNamed: "Optima-ExtraBlack")
+        bonusLabel.fontSize = 24
+        
+        bonusLabel.position = CGPoint(x: frame.maxX - 20, y: frame.maxY - 60)
+        bonusLabel.horizontalAlignmentMode = .right
+        bonusLabel.text = "BONUS: 0"
+        bonusLabel.fontColor = UIColor.black
+        
+        addChild(bonusLabel)
     }
     
     /// createLogos() creates centralized logos for the intro and game-over page
