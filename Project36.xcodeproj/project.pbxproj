@@ -255,6 +255,7 @@
 				TargetAttributes = {
 					295684061DF7CC9800711ACD = {
 						CreatedOnToolsVersion = 8.1;
+						DevelopmentTeam = Q7GRX5FD8S;
 						ProvisioningStyle = Automatic;
 					};
 					295684201DF7CC9900711ACD = {
@@ -477,6 +478,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = Q7GRX5FD8S;
 				INFOPLIST_FILE = Project36/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = jpdeguzman.Project36;
@@ -489,6 +491,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = Q7GRX5FD8S;
 				INFOPLIST_FILE = Project36/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = jpdeguzman.Project36;

@@ -117,6 +117,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             return
         }
         
+        if contact.bodyA.node == nil || contact.bodyB.node == nil {
+            return
+        }
+        
         // Otherwise, check to see if the player touches the rocks or ground and if so, end the game.
         if contact.bodyA.node == player || contact.bodyB.node == player {
             if let explosion = SKEmitterNode(fileNamed: "PlayerExplosion") {
